@@ -12,7 +12,7 @@ site_theme               : "mint" # The available themes options are "default", 
 title                    : "Mustafa Turan Sağlam | Academic Portfolio"
 title_separator          : "-"
 name                     : &name "Mustafa Turan Sağlam"
-description              : &description "Research Assistant & PhD Student in Computer Engineering at Erciyes University"
+description              : &description "Research Assistant & PhD Student in Astronomy and Space Sciences at Erciyes University"
 url                      : https://mtsaglam.github.io
                                                            # or if you already have some other page hosted on Github then use "https://[your GitHub username].github.io/[Your Repo Name]"
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
@@ -26,7 +26,7 @@ author:
   avatar           : "profile.png"
   name             : "Mustafa Turan Sağlam"
   pronouns         : # example: "she/her"
-  bio              : "Research Assistant & PhD Student in Computer Engineering"
+  bio              : "Research Assistant & PhD Student in Astronomy and Space Sciences"
   location         : "Talas, Kayseri, Türkiye"
   employer         : "Erciyes University"
   uri              : # URL
