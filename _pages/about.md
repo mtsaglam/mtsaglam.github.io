@@ -7,7 +7,8 @@ redirect_from:
   - /about.html
 ---
 
-Welcome to my academic website! I am a Research Assistant and PhD Student in the Computer Engineering Department at Erciyes University. My research interests include machine learning, artificial intelligence, and computer vision.
+Welcome to my academic website! I am a Research Assistant and PhD Student in the Computer Engineering Department at Erciyes University. 
+
 
 About Me
 ======
