@@ -1,15 +1,7 @@
 {% include base_path %}
 
-<footer style="background-color: transparent; padding: 0; margin: 0; position: relative;">
-  <div class="page__footer-copyright" style="font-size: 0.65em; color: #ccc; padding: 8rem 1rem 2rem; text-align: center; margin-top: 10rem; border-top: none; background-color: transparent; line-height: 1.1;">
-    <p style="margin: 0.1rem 0;">
-      &copy; {{ site.time | date: '%Y' }} {{ site.name | default: site.title }}
-    </p>
-    <p style="margin: 0.1rem 0; font-size: 0.8em; color: #ddd;">
-      <a href="/sitemap/" style="text-decoration: none; color: #ddd;">Sitemap</a>
-    </p>
-    <p style="margin: 0.1rem 0; font-size: 0.75em; color: #e0e0e0;">
-      Powered by <a href="https://jekyllrb.com" rel="nofollow" style="text-decoration: none; color: #e0e0e0;">Jekyll</a> &amp; <a href="https://github.com/academicpages/academicpages.github.io" style="text-decoration: none; color: #e0e0e0;">AcademicPages</a>
-    </p>
-  </div>
-</footer>
+<div class="page__footer-copyright">
+  &copy; {{ site.time | date: '%Y' }} {{ site.name | default: site.title }} &nbsp;&middot;&nbsp;
+  <a href="/sitemap/">Sitemap</a> &nbsp;&middot;&nbsp;
+  Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://github.com/academicpages/academicpages.github.io">AcademicPages</a>
+</div>
