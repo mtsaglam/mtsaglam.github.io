@@ -1,0 +1,48 @@
+<!-- Analytics Tracker - Add to _includes/analytics-tracker.html -->
+<script>
+  // Supabase configuration
+  const SUPABASE_URL = 'https://wfpybepruwgmkxnkpdqp.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_YhTRqOYQkAGcKUGF_mp4bA_B6ZyXf6L';
+
+  // Track visitor
+  async function trackVisitor() {
+    try {
+      // Get IP and geolocation data
+      const geoResponse = await fetch('https://ip-api.com/json/');
+      const geoData = await geoResponse.json();
+
+      // Prepare visitor data
+      const visitData = {
+        ip_address: geoData.query,
+        country: geoData.country,
+        city: geoData.city,
+        page: window.location.pathname,
+        user_agent: navigator.userAgent
+      };
+
+      // Send to Supabase
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/visitors`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(visitData)
+      });
+
+      if (!response.ok) {
+        console.log('Analytics tracking: server responded with', response.status);
+      }
+    } catch (error) {
+      console.log('Analytics tracking failed:', error.message);
+    }
+  }
+
+  // Track on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', trackVisitor);
+  } else {
+    trackVisitor();
+  }
+</script>
