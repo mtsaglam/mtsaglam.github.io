@@ -13,7 +13,7 @@ title                    : "Mustafa Turan Sağlam"
 title_separator          : "-"
 name                     : &name "Mustafa Turan Sağlam"
 description              : &description "Research Assistant & PhD Student in Astronomy and Space Sciences at Erciyes University"
-url                      : https://mtsaglam.github.io
+url                      : https://mustafaturansaglam.com
                                                            # or if you already have some other page hosted on Github then use "https://[your GitHub username].github.io/[Your Repo Name]"
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
 repository               : "mtsaglam/mtsaglam.github.io"
