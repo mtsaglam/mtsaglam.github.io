@@ -13,6 +13,16 @@ About Me
 ======
 I am currently pursuing my PhD in Astronomy and Space Sciences at Erciyes University while working as a Research Assistant in the Department of Astronomy and Space Science. I received my M.Sc. and B.Sc. degrees in Astronomy and Space Sciences from İstanbul University. In 2024, I was a Visiting Researcher at the MIT Kavli Institute for Astrophysics and Space Research (Cambridge, MA, USA).
 
+<figure>
+  <img src="/images/talk-xray-universe-2026-elche.jpg" alt="Giving a talk at The X-ray Universe 2026 conference in Elche, Spain">
+  <figcaption>My talk at The X-ray Universe 2026 in Elche, Spain.</figcaption>
+</figure>
+
+<figure>
+  <img src="/images/talk-uak-2026-erzurum.jpg" alt="Presenting XRISM and NuSTAR cross-calibration results at UAK 2026, Erzurum">
+  <figcaption>UAK 2026 &mdash; Erzurum Atatürk University.</figcaption>
+</figure>
+
 Research Interests
 ======
 - High Energy (X-ray) Astrophysics — data analysis of RXTE, NuSTAR, XMM-Newton, Chandra and XRISM observations; X-ray timing, spectral analysis and imaging techniques
