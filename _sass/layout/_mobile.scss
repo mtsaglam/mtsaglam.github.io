@@ -1,0 +1,152 @@
+/* ==========================================================================
+   MOBILE REFINEMENTS
+   Small-screen fixes layered on top of the theme (<= 767px).
+   Imported last so these rules win.
+   ========================================================================== */
+
+@media screen and (max-width: 767px) {
+
+  /* --- Headings: the theme sets line-height 1 on titles, which makes
+         multi-line headings collide on narrow screens --- */
+  .page__title,
+  .archive__item-title,
+  .page__content h1,
+  .page__content h2,
+  .page__content h3,
+  .page__content h4 {
+    line-height: 1.3;
+    overflow-wrap: break-word;
+  }
+
+  .page__title {
+    font-size: 1.45rem;
+    margin-bottom: 0.4em;
+  }
+
+  .page__content {
+    h2 { font-size: 1.2rem; margin-top: 1.8em; }
+    h3 { font-size: 1.05rem; margin-top: 1.6em; }
+
+    p,
+    li {
+      line-height: 1.65;
+    }
+  }
+
+  /* --- Author profile: avatar was being squashed out of square and the
+         profile links were too small to tap comfortably --- */
+  .author__avatar {
+    img {
+      width: 48px;
+      height: 48px;
+      max-width: 48px;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+  }
+
+  .author__content {
+    padding-left: 0.75rem;
+    vertical-align: middle;
+  }
+
+  .author__name {
+    font-size: 1rem;
+    line-height: 1.3;
+    margin: 0;
+  }
+
+  .author__bio {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    margin: 0.15rem 0 0;
+  }
+
+  .author__urls-wrapper {
+    button {
+      font-size: 0.8125rem;
+      padding: 0.5rem 0.9rem;
+      min-height: 38px;
+    }
+  }
+
+  .author__urls {
+    padding: 0.5rem 0.75rem;
+
+    li {
+      font-size: 0.875rem;
+      padding: 0;
+    }
+
+    a {
+      display: block;
+      padding: 0.5rem 0.25rem;
+      line-height: 1.3;
+    }
+  }
+
+  /* --- Navigation dropdown: wider panel and finger-sized rows --- */
+  .greedy-nav {
+    button {
+      padding: 0.4rem 0.6rem;
+    }
+
+    .hidden-links {
+      min-width: 11rem;
+      max-width: 80vw;
+
+      li {
+        font-size: 0.95rem;
+      }
+
+      a {
+        display: block;
+        padding: 0.6rem 0.9rem;
+        line-height: 1.3;
+      }
+    }
+
+    .visible-links li:first-child a {
+      font-size: 1rem;
+    }
+  }
+
+  /* --- Code and tables: keep them readable and inside the viewport --- */
+  .page__content {
+    pre,
+    pre code {
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    code {
+      overflow-wrap: break-word;
+    }
+
+    table {
+      display: block;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    img {
+      height: auto;
+    }
+  }
+
+  /* --- Footer --- */
+  .page__footer {
+    margin-top: 2.5em;
+
+    footer {
+      padding: 0.5rem 1rem 1rem;
+    }
+  }
+
+  .page__footer-copyright {
+    line-height: 1.6;
+  }
+}
