@@ -306,6 +306,14 @@ permalink: /:categories/:title/
 timezone: Etc/UTC # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 
+# GitHub Pages runs jekyll-titles-from-headings, which turns a page's first
+# heading into its title. Without strip_title the heading is then rendered
+# twice: once as the page title and once in the body.
+titles_from_headings:
+  enabled: true
+  strip_title: true
+  collections: false
+
 # Plugins
 plugins:
   - jekyll-feed
