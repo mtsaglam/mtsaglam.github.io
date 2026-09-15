@@ -14,6 +14,7 @@ This page shows real-time statistics about visitors to this website.
   </div>
 </div>
 
+{% raw %}
 <script>
   const SUPABASE_URL = 'https://wfpybepruwgmkxnkpdqp.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_YhTRqOYQkAGcKUGF_mp4bA_B6ZyXf6L';
@@ -132,3 +133,4 @@ This page shows real-time statistics about visitors to this website.
     loadAnalytics();
   }
 </script>
+{% endraw %}
