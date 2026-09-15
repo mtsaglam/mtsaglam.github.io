@@ -1,0 +1,78 @@
+/* ==========================================================================
+   PHOTO ROW + CSS-ONLY LIGHTBOX
+   Small side-by-side thumbnails that open full size when clicked.
+   No JavaScript: the overlay is shown with :target.
+   ========================================================================== */
+
+.photo-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin: 1.5em 0;
+
+  figure {
+    display: block;
+    margin: 0;
+  }
+
+  a {
+    display: block;
+    line-height: 0;
+  }
+
+  img {
+    width: 100%;
+    height: 170px;
+    margin-bottom: 0.4rem;
+    object-fit: cover;
+    border-radius: $border-radius;
+    cursor: zoom-in;
+    transition: opacity 0.15s ease-in-out;
+
+    &:hover {
+      opacity: 0.85;
+    }
+  }
+
+  figcaption {
+    margin: 0;
+    font-family: $caption-font-family;
+    font-size: $type-size-6;
+    line-height: 1.4;
+    color: var(--global-text-color-light);
+  }
+
+  @media screen and (max-width: 480px) {
+    grid-template-columns: 1fr;
+
+    img {
+      height: 200px;
+    }
+  }
+}
+
+.lightbox {
+  display: none;
+
+  &:target {
+    display: flex;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.92);
+    cursor: zoom-out;
+    z-index: 999;
+  }
+
+  img {
+    max-width: 94vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: $border-radius;
+  }
+}
