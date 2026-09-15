@@ -1,13 +1,10 @@
 ---
 permalink: /
-title: "Mustafa Turan Sağlam - Research Assistant & PhD Student"
 author_profile: true
 redirect_from: 
   - /about/
   - /about.html
 ---
-
-Welcome to my academic website! I am a Research Assistant and PhD Student in Astronomy and Space Sciences at Erciyes University, Kayseri, Türkiye.
 
 About Me
 ======
