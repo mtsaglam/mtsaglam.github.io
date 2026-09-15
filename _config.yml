@@ -9,7 +9,7 @@
 # Basic Site Settings
 locale                   : "en-US"
 site_theme               : "mint" # The available themes options are "default", "air", "sunrise", "mint", "dirt" and "contrast"
-title                    : "Mustafa Turan Sağlam | Academic Portfolio"
+title                    : "Mustafa Turan Sağlam"
 title_separator          : "-"
 name                     : &name "Mustafa Turan Sağlam"
 description              : &description "Research Assistant & PhD Student in Astronomy and Space Sciences at Erciyes University"
@@ -43,6 +43,7 @@ author:
   ssrn             : # URL
   pubmed           : # URL
   researchgate     : "https://www.researchgate.net/profile/Mustafa_Saglam6"
+  avesis           : "https://avesis.erciyes.edu.tr/mtsaglam"
   scopus           : # URL
   zotero           : # URL
 
@@ -74,7 +75,7 @@ author:
   steam            : # Username
   telegram         : # URL
   tumblr           : # Username
-  twitter          : # Username for X / Twitter
+  twitter          : "mtsaglamm"
   vine             : # Username
   weibo            : # Username
   wikipedia        : # Username
