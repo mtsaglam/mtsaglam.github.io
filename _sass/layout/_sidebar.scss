@@ -322,3 +322,12 @@
     }
   }
 }
+
+/* The employer entry is a link; keep it on the same line as its icon
+   instead of breaking onto a new one like the stacked profile links. */
+.author__urls li a.author__employer-link {
+  display: inline;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
