@@ -23,18 +23,30 @@
 
 <!-- Layout fixes -->
 <style>
-  /* The theme pins the sidebar with position:fixed and height:100vh, so on
-     short pages the footer lands in the middle of it. Keeping it sticky and
-     in normal flow lets #main's clearfix contain it, so the footer always
-     sits below both columns. 70px is $masthead-height. */
-  @media screen and (min-width: 1024px) {
+  /* The theme pins .sidebar with position:fixed + height:100vh, so on short
+     pages the footer strip landed in the middle of the sidebar links.
+     Keeping it sticky and in normal flow lets #main's clearfix contain it,
+     so the footer always sits below both columns.
+
+     The breakpoint is 57.8125em (925px) on purpose: that is where the theme's
+     two-column float layout starts. The theme's fixed rule started at 1024px
+     instead, leaving 925-1024px with an out-of-flow sidebar over full-width
+     content.
+
+     padding-top needs !important because jquery.greedy-navigation.js writes
+     an inline padding-top equal to the masthead height on every resize. That
+     was needed while the sidebar was fixed to the viewport top; in normal
+     flow <body> already carries that padding, so it applied twice and pushed
+     the avatar down. */
+  @media screen and (min-width: 57.8125em) {
     .sidebar {
       position: -webkit-sticky;
       position: sticky;
-      top: calc(70px + 1em);
+      top: 1em;
       height: auto;
-      max-height: calc(100vh - 70px - 2em);
-      padding-top: 0;
+      max-height: calc(100vh - 2em);
+      overflow-y: auto;
+      padding-top: 0 !important;
     }
   }
 
