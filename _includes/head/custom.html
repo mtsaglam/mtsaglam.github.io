@@ -21,19 +21,34 @@
 
 <!-- end custom head snippets -->
 
-<!-- Footer sticky fix -->
+<!-- Layout fixes -->
 <style>
+  /* The theme pins the sidebar with position:fixed and height:100vh, so on
+     short pages the footer lands in the middle of it. Keeping it sticky and
+     in normal flow lets #main's clearfix contain it, so the footer always
+     sits below both columns. 70px is $masthead-height. */
+  @media screen and (min-width: 1024px) {
+    .sidebar {
+      position: -webkit-sticky;
+      position: sticky;
+      top: calc(70px + 1em);
+      height: auto;
+      max-height: calc(100vh - 70px - 2em);
+      padding-top: 0;
+    }
+  }
+
+  /* Long unbroken strings (URLs, institution names) wrap instead of
+     spilling out of their column. */
+  .sidebar,
+  .page__content,
+  .archive {
+    overflow-wrap: break-word;
+  }
+
+  /* The theme reserves 9em under the footer, which reads as a large empty
+     gap now that the sidebar no longer needs the room. */
   body {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-  
-  .page__content {
-    flex: 1;
-  }
-  
-  .page__footer {
-    margin-top: auto;
+    padding-bottom: 3em;
   }
 </style>
