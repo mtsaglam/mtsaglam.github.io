@@ -85,7 +85,36 @@
   .face-wrap img{ width:84%; height:84%; object-fit:contain; }
   .go-msg{ font-size:14px; color:#f0f0f0; margin-bottom:10px; max-width:360px;}
   .go-score{ font-size:18px; font-weight:800; margin-bottom:4px;}
-  .go-stage{ font-size:13px; color:#c9cde0; margin-bottom:20px;}
+  .go-stage{ font-size:13px; color:#c9cde0; margin-bottom:16px;}
+
+  .ghost-btn{
+    padding:10px 18px; border-radius:10px; border:2px solid #444a66;
+    background:transparent; color:#c9cde0; font-size:13px; font-weight:700; cursor:pointer;
+  }
+  .ghost-btn:active{ background:#191928; }
+  .ghost-btn:disabled{ opacity:0.6; cursor:default; }
+
+  .row-gap{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+
+  .name-row{ width:100%; max-width:300px; margin:4px 0 10px; }
+  .name-input{
+    width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px;
+    border:2px solid #444a66; background:#0f0f1c; color:#fff; font-size:15px; text-align:center;
+  }
+  .name-input::placeholder{ color:#6a7090; }
+
+  .submit-status{ font-size:12px; min-height:16px; margin-top:6px; color:#9aa0bf; }
+
+  .lb-panel{ width:100%; max-width:380px; max-height:70vh; overflow-y:auto; }
+  .lb-list{ margin-top:6px; }
+  .lb-row{
+    display:flex; align-items:center; gap:10px; padding:8px 4px;
+    border-bottom:1px solid #2a2a3e; font-size:14px;
+  }
+  .lb-row .rank{ width:30px; color:var(--gold); font-weight:800; flex-shrink:0; }
+  .lb-row .name{ flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-row .hidx{ font-weight:800; flex-shrink:0; }
+  .lb-empty{ color:#9aa0bf; font-size:13px; padding:20px 0; }
 
   #toast{
     position:absolute; top:70px; left:50%; transform:translateX(-50%);
@@ -121,6 +150,7 @@
       <button class="lang-btn" id="btn-lang-en" data-lang="en">English</button>
     </div>
     <button class="big-btn" id="btn-start">BAŞLA</button>
+    <button class="ghost-btn" id="btn-show-leaderboard" style="margin-top:12px;">🏆 Liderlik Tablosu</button>
     <div class="hint" id="start-hint">Zıplamak için dokun / tıkla / SPACE</div>
   </div>
 
@@ -141,7 +171,25 @@
     <div class="go-msg" id="go-msg"></div>
     <div class="go-score" id="go-score"></div>
     <div class="go-stage" id="go-stage"></div>
-    <button class="big-btn" id="btn-restart">TEKRAR DENE</button>
+    <div id="score-submit-block">
+      <div class="name-row">
+        <input class="name-input" id="name-input" maxlength="24" placeholder="Dr. Procrastinator">
+      </div>
+      <div class="row-gap">
+        <button class="ghost-btn" id="btn-submit-score">h-index Tablosuna Gönder</button>
+      </div>
+      <div class="submit-status" id="submit-status"></div>
+    </div>
+    <button class="ghost-btn" id="btn-show-leaderboard-go" style="margin-top:4px;">🏆 Tabloyu Gör</button>
+    <button class="big-btn" id="btn-restart" style="margin-top:14px;">TEKRAR DENE</button>
+  </div>
+
+  <div class="overlay hidden" id="overlay-leaderboard" style="z-index:10;">
+    <div class="panel lb-panel">
+      <div class="panel-head" id="lb-title">GLOBAL H-INDEX TABLOSU</div>
+      <div class="lb-list" id="lb-list"></div>
+      <button class="ghost-btn" id="btn-close-leaderboard" style="margin-top:14px;">Kapat</button>
+    </div>
   </div>
 </div>
 
@@ -166,6 +214,10 @@ const ASSET_B64 = {
   ]
 };
 
+/* ------------------------------------------------------- leaderboard -- */
+const SUPABASE_URL = "https://onilobujfsbpbokydnjv.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_NenXHttOSIoS0ox2c__ZhA_nDaPfOLC";
+
 /* ------------------------------------------------------------ text ---- */
 const TEXT = {
   tr: {
@@ -185,6 +237,17 @@ const TEXT = {
     correct: "Doğru! +3 atıf",
     wrong: "Yanlış oldu, devam!",
     gravityMsg: "Yerçekimi her zaman kazanır.",
+    lbTitle: "Global h-index Tablosu",
+    namePlaceholder: "Dr. Procrastinator",
+    submitBtn: "h-index Tablosuna Gönder",
+    submitSending: "Gönderiliyor...",
+    submitDone: "Gönderildi!",
+    submitErr: "Gönderilemedi, bağlantını kontrol et.",
+    viewLb: "🏆 Liderlik Tablosu",
+    closeLb: "Kapat",
+    lbLoading: "Yükleniyor...",
+    lbEmpty: "Henüz kimsenin h-index'i yok. İlk sen ol!",
+    anonPrefix: "Anonim PhD #",
     rejectMsgs: [
       "'Deneyleri baştan yapın.'",
       "Desk reject: 'Scope dışı.'",
@@ -215,6 +278,17 @@ const TEXT = {
     correct: "Correct! +3 citations",
     wrong: "Wrong, keep going!",
     gravityMsg: "Gravity always wins.",
+    lbTitle: "Global h-index Leaderboard",
+    namePlaceholder: "Dr. Procrastinator",
+    submitBtn: "Submit to Leaderboard",
+    submitSending: "Submitting...",
+    submitDone: "Submitted!",
+    submitErr: "Couldn't submit, check your connection.",
+    viewLb: "🏆 Leaderboard",
+    closeLb: "Close",
+    lbLoading: "Loading...",
+    lbEmpty: "Nobody has an h-index yet. Be the first!",
+    anonPrefix: "Anonymous PhD #",
     rejectMsgs: [
       "'Redo all the experiments from scratch.'",
       "Desk reject: 'Out of scope.'",
@@ -330,6 +404,17 @@ const goScore = document.getElementById("go-score");
 const goStage = document.getElementById("go-stage");
 const btnRestart = document.getElementById("btn-restart");
 
+const btnShowLb = document.getElementById("btn-show-leaderboard");
+const btnShowLbGo = document.getElementById("btn-show-leaderboard-go");
+const btnCloseLb = document.getElementById("btn-close-leaderboard");
+const ovLeaderboard = document.getElementById("overlay-leaderboard");
+const lbTitleEl = document.getElementById("lb-title");
+const lbList = document.getElementById("lb-list");
+const nameInput = document.getElementById("name-input");
+const btnSubmitScore = document.getElementById("btn-submit-score");
+const submitStatus = document.getElementById("submit-status");
+const scoreSubmitBlock = document.getElementById("score-submit-block");
+
 let LANG = "tr";
 
 function applyLangUI(){
@@ -341,6 +426,12 @@ function applyLangUI(){
   goTitle.textContent = t.rejected;
   btnLangTr.classList.toggle("active", LANG==="tr");
   btnLangEn.classList.toggle("active", LANG==="en");
+  nameInput.placeholder = t.namePlaceholder;
+  btnSubmitScore.textContent = t.submitBtn;
+  btnShowLb.textContent = t.viewLb;
+  btnShowLbGo.textContent = t.viewLb;
+  btnCloseLb.textContent = t.closeLb;
+  lbTitleEl.textContent = t.lbTitle;
 }
 btnLangTr.addEventListener("click", ()=>{ LANG="tr"; applyLangUI(); });
 btnLangEn.addEventListener("click", ()=>{ LANG="en"; applyLangUI(); });
@@ -362,6 +453,10 @@ let stars = [], nebula = [];
 
 try { bestScore = parseInt(localStorage.getItem("phdFlappyBest") || "0", 10) || 0; }
 catch(e){ bestScore = 0; }
+
+let savedName = "";
+try { savedName = localStorage.getItem("phdFlappyName") || ""; }
+catch(e){ savedName = ""; }
 
 function makeStars(n){
   const arr = [];
@@ -434,7 +529,64 @@ function triggerGameOver(faceIdx, msgKey){
   } else {
     goFaceWrap.style.display = "none";
   }
+
+  scoreSubmitBlock.style.display = score > 0 ? "block" : "none";
+  nameInput.value = savedName;
+  submitStatus.textContent = "";
+  btnSubmitScore.disabled = false;
+  btnSubmitScore.textContent = TEXT[LANG].submitBtn;
+
   ovGameover.classList.remove("hidden");
+}
+
+function randomAnonName(){
+  return TEXT[LANG].anonPrefix + Math.floor(1000 + Math.random()*9000);
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+async function submitScore(name, scoreVal){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    },
+    body: JSON.stringify({ name, score: scoreVal, lang: LANG })
+  });
+  if(!res.ok) throw new Error("submit failed: " + res.status);
+}
+
+async function fetchLeaderboard(){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/scores?select=name,score&order=score.desc&limit=10`, {
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  });
+  if(!res.ok) throw new Error("fetch failed: " + res.status);
+  return res.json();
+}
+
+async function openLeaderboard(){
+  ovLeaderboard.classList.remove("hidden");
+  lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].lbLoading}</div>`;
+  try{
+    const rows = await fetchLeaderboard();
+    if(!rows.length){
+      lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].lbEmpty}</div>`;
+      return;
+    }
+    lbList.innerHTML = rows.map((r,i)=>
+      `<div class="lb-row"><span class="rank">#${i+1}</span><span class="name">${escapeHtml(r.name)}</span><span class="hidx">${r.score}</span></div>`
+    ).join("");
+  }catch(e){
+    lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].submitErr}</div>`;
+  }
 }
 
 function openTrivia(){
@@ -478,6 +630,30 @@ btnStart.addEventListener("click", ()=>{
 btnRestart.addEventListener("click", ()=>{
   ovGameover.classList.add("hidden");
   resetGame();
+});
+
+btnShowLb.addEventListener("click", openLeaderboard);
+btnShowLbGo.addEventListener("click", openLeaderboard);
+btnCloseLb.addEventListener("click", ()=> ovLeaderboard.classList.add("hidden"));
+
+btnSubmitScore.addEventListener("click", async ()=>{
+  let name = nameInput.value.trim();
+  if(!name) name = randomAnonName();
+  if(name.length > 24) name = name.slice(0, 24);
+  savedName = name;
+  try{ localStorage.setItem("phdFlappyName", name); }catch(e){}
+
+  btnSubmitScore.disabled = true;
+  btnSubmitScore.textContent = TEXT[LANG].submitSending;
+  submitStatus.textContent = "";
+  try{
+    await submitScore(name, score);
+    btnSubmitScore.textContent = TEXT[LANG].submitDone;
+  }catch(e){
+    submitStatus.textContent = TEXT[LANG].submitErr;
+    btnSubmitScore.disabled = false;
+    btnSubmitScore.textContent = TEXT[LANG].submitBtn;
+  }
 });
 
 canvas.addEventListener("pointerdown", (e)=>{ e.preventDefault(); flap(); });
