@@ -42,9 +42,9 @@
   .hidden{ display:none !important; }
 
   .title{ font-size:clamp(22px,7vw,32px); font-weight:800; color:var(--gold); margin:0 0 2px; letter-spacing:0.5px;}
-  .subtitle{ font-size:clamp(12px,3.6vw,15px); color:#cfd3e6; margin:0 0 22px; }
+  .subtitle{ font-size:clamp(12px,3.6vw,15px); color:#cfd3e6; margin:0 0 18px; }
 
-  .lang-row{ display:flex; gap:10px; margin-bottom:22px; }
+  .lang-row{ display:flex; gap:10px; margin-bottom:16px; }
   .lang-btn{
     padding:8px 18px; border-radius:999px; border:2px solid #444a66;
     background:#12121f; color:#c9cde0; font-size:14px; font-weight:700; cursor:pointer;
@@ -96,12 +96,13 @@
 
   .row-gap{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
 
-  .name-row{ width:100%; max-width:300px; margin:4px 0 10px; }
+  .name-row{ width:100%; max-width:300px; margin:4px 0 6px; }
   .name-input{
     width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px;
     border:2px solid #444a66; background:#0f0f1c; color:#fff; font-size:15px; text-align:center;
   }
   .name-input::placeholder{ color:#6a7090; }
+  .name-warn{ color:#ff8f8f; font-size:12px; min-height:16px; margin-bottom:8px; max-width:300px; }
 
   .submit-status{ font-size:12px; min-height:16px; margin-top:6px; color:#9aa0bf; }
 
@@ -116,11 +117,14 @@
   .lb-row .hidx{ font-weight:800; flex-shrink:0; }
   .lb-empty{ color:#9aa0bf; font-size:13px; padding:20px 0; }
 
+  #overlay-countdown{ z-index:6; background:rgba(4,4,16,0.35); pointer-events:none; }
+  #countdown-num{ font-size:110px; font-weight:900; color:var(--gold); text-shadow:0 4px 14px rgba(0,0,0,0.6); }
+
   #toast{
     position:absolute; top:70px; left:50%; transform:translateX(-50%);
     background:rgba(0,0,0,0.55); color:#ffe678; font-weight:700; font-size:13px;
     padding:8px 14px; border-radius:8px; z-index:4; pointer-events:none; opacity:0; transition:opacity .25s;
-    white-space:nowrap;
+    white-space:nowrap; max-width:90%; text-align:center;
   }
   #toast.show{ opacity:1; }
 
@@ -130,6 +134,10 @@
   }
   #hud .score{ font-size:20px; }
   #hud .stage{ font-size:12px; opacity:0.9; margin-top:2px; }
+  #hud .stars-count{ font-size:12px; margin-top:2px; opacity:0.95; }
+  #energy-wrap{ margin-top:6px; width:120px; }
+  #energy-bar{ width:100%; height:8px; background:rgba(255,255,255,0.18); border-radius:4px; overflow:hidden; }
+  #energy-fill{ height:100%; width:100%; background:linear-gradient(90deg,#ff5a3c,#ffd23c); }
 </style>
 </head>
 <body>
@@ -139,6 +147,10 @@
   <div id="hud">
     <div class="score" id="hud-score">0</div>
     <div class="stage" id="hud-stage"></div>
+    <div class="stars-count" id="hud-stars"></div>
+    <div id="energy-wrap" class="hidden">
+      <div id="energy-bar"><div id="energy-fill"></div></div>
+    </div>
   </div>
   <div id="toast"></div>
 
@@ -149,9 +161,13 @@
       <button class="lang-btn active" id="btn-lang-tr" data-lang="tr">Türkçe</button>
       <button class="lang-btn" id="btn-lang-en" data-lang="en">English</button>
     </div>
+    <div class="name-row">
+      <input class="name-input" id="start-name-input" maxlength="24" placeholder="İsminiz (opsiyonel)" autocomplete="off">
+    </div>
+    <div class="name-warn" id="start-name-warn"></div>
     <button class="big-btn" id="btn-start">BAŞLA</button>
     <button class="ghost-btn" id="btn-show-leaderboard" style="margin-top:12px;">🏆 Liderlik Tablosu</button>
-    <div class="hint" id="start-hint">Zıplamak için dokun / tıkla / SPACE</div>
+    <div class="hint" id="start-hint">İsmini yaz, SPACE'e bas ya da BAŞLA'ya tıkla</div>
   </div>
 
   <div class="overlay hidden" id="overlay-trivia">
@@ -163,6 +179,10 @@
       <button class="opt-btn" data-i="2"></button>
       <div class="feedback" id="trivia-feedback"></div>
     </div>
+  </div>
+
+  <div class="overlay hidden" id="overlay-countdown">
+    <div id="countdown-num">3</div>
   </div>
 
   <div class="overlay hidden" id="overlay-gameover">
@@ -218,14 +238,33 @@ const ASSET_B64 = {
 const SUPABASE_URL = "https://onilobujfsbpbokydnjv.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_NenXHttOSIoS0ox2c__ZhA_nDaPfOLC";
 
+const PROFANITY_LIST = [
+  "amk","amq","siktir","sikik","sikerim","sikeyim","orospu","oruspu","piç","pic",
+  "yavsak","yavşak","got","göt","ibne","serefsiz","şerefsiz","gavat","pezevenk","kahpe",
+  "yarrak","tasak","taşak","piçkurusu","pickurusu",
+  "fuck","shit","bitch","asshole","cunt","dick","bastard","whore","slut",
+  "nigger","nigga","faggot","retard","cock"
+];
+function normalizeForFilter(s){
+  return s.toLowerCase()
+    .replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u")
+    .replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c")
+    .replace(/[^a-z0-9]/g,"");
+}
+function isProfane(name){
+  const n = normalizeForFilter(name);
+  if(!n) return false;
+  return PROFANITY_LIST.some(w => n.includes(w));
+}
+
 /* ------------------------------------------------------------ text ---- */
 const TEXT = {
   tr: {
     subtitle: "Publish or Perish",
     start: "BAŞLA",
-    tapHint: "Zıplamak için dokun / tıkla / SPACE",
+    tapHint: "İsmini yaz, SPACE'e bas ya da BAŞLA'ya tıkla",
+    startNamePlaceholder: "İsminiz (opsiyonel)",
     restart: "TEKRAR DENE",
-    restartHint: "Tekrar denemek için dokun / tıkla",
     rejected: "REDDEDILDİ!",
     bestScore: "En iyi",
     totalCitations: "Toplam Atıf",
@@ -233,7 +272,6 @@ const TEXT = {
     stageReached: "Ulaşılan aşama",
     stageNames: ["Dünya Yüzeyi","Atmosfer","Uzay Sınırı","Alçak Yörünge","Derin Uzay"],
     stageToast: [null,"Atmosfere yükseliyorsun!","Uzayın eşiğindesin!","Yörüngeye ulaştın!","Derin uzaya açılıyorsun!"],
-    triviaHead: "ASTRONOMY CHECK",
     correct: "Doğru! +3 atıf",
     wrong: "Yanlış oldu, devam!",
     gravityMsg: "Yerçekimi her zaman kazanır.",
@@ -248,6 +286,16 @@ const TEXT = {
     lbLoading: "Yükleniyor...",
     lbEmpty: "Henüz kimsenin h-index'i yok. İlk sen ol!",
     anonPrefix: "Anonim PhD #",
+    profanityWarn: "Böyle bir isim kullanılamaz. Küfür/argo tespit edildi — IP bilgileriniz yöneticiye iletildi.",
+    welcomeBack: "Tekrar hoş geldin,",
+    newProfile: "Yeni h-index kaydı oluşturuldu:",
+    autoSubmitting: "Otomatik gönderiliyor...",
+    newTotalPrefix: "Yeni toplam h-index:",
+    starsLabel: "⭐",
+    powerOn: "⚡ Güç modu aktif! Bloklardan geçebilirsin!",
+    powerOff: "Güç modu bitti, dikkatli ol!",
+    runnerOn: "Yerde koşuyorsun, hakemlerin üzerinden atla!",
+    runnerOff: "Tekrar uçuyorsun!",
     rejectMsgs: [
       "'Deneyleri baştan yapın.'",
       "Desk reject: 'Scope dışı.'",
@@ -264,9 +312,9 @@ const TEXT = {
   en: {
     subtitle: "Publish or Perish",
     start: "START",
-    tapHint: "Tap / click / SPACE to flap",
+    tapHint: "Type your name, hit SPACE, or tap START",
+    startNamePlaceholder: "Your name (optional)",
     restart: "TRY AGAIN",
-    restartHint: "Tap / click to try again",
     rejected: "REJECTED!",
     bestScore: "Best",
     totalCitations: "Total Citations",
@@ -274,7 +322,6 @@ const TEXT = {
     stageReached: "Stage reached",
     stageNames: ["Earth's Surface","Atmosphere","Edge of Space","Low Orbit","Deep Space"],
     stageToast: [null,"Rising into the atmosphere!","You're at the edge of space!","You reached orbit!","Entering deep space!"],
-    triviaHead: "ASTRONOMY CHECK",
     correct: "Correct! +3 citations",
     wrong: "Wrong, keep going!",
     gravityMsg: "Gravity always wins.",
@@ -289,6 +336,16 @@ const TEXT = {
     lbLoading: "Loading...",
     lbEmpty: "Nobody has an h-index yet. Be the first!",
     anonPrefix: "Anonymous PhD #",
+    profanityWarn: "That name can't be used. Profanity detected — your IP info has been reported to the admin.",
+    welcomeBack: "Welcome back,",
+    newProfile: "New h-index profile created:",
+    autoSubmitting: "Auto-submitting...",
+    newTotalPrefix: "New total h-index:",
+    starsLabel: "⭐",
+    powerOn: "⚡ Power mode active! Fly straight through blocks!",
+    powerOff: "Power mode ended, watch out!",
+    runnerOn: "Running on the ground — jump over the reviewers!",
+    runnerOff: "Flying again!",
     rejectMsgs: [
       "'Redo all the experiments from scratch.'",
       "Desk reject: 'Out of scope.'",
@@ -305,30 +362,36 @@ const TEXT = {
 };
 
 const TRIVIA = [
-  { tr:{q:"Hangi gezegen 'Kızıl Gezegen' olarak bilinir?", o:["Venüs","Mars","Jüpiter"]},
-    en:{q:"Which planet is known as the Red Planet?", o:["Venus","Mars","Jupiter"]}, a:1 },
-  { tr:{q:"Dünya'ya en yakın yıldız hangisidir?", o:["Proxima Centauri","Sirius","Güneş"]},
-    en:{q:"What is the closest star to Earth?", o:["Proxima Centauri","Sirius","The Sun"]}, a:2 },
-  { tr:{q:"Hangi galakside yaşıyoruz?", o:["Andromeda","Samanyolu","Üçgen Galaksisi"]},
-    en:{q:"What galaxy do we live in?", o:["Andromeda","Milky Way","Triangulum"]}, a:1 },
-  { tr:{q:"En çok uydusu olan gezegen hangisidir?", o:["Dünya","Mars","Satürn"]},
-    en:{q:"Which planet has the most moons?", o:["Earth","Mars","Saturn"]}, a:2 },
-  { tr:{q:"Gezegenleri yörüngede tutan kuvvet nedir?", o:["Manyetizma","Yerçekimi","Sürtünme"]},
-    en:{q:"What force keeps planets in orbit?", o:["Magnetism","Gravity","Friction"]}, a:1 },
-  { tr:{q:"Işık yılı neyin birimidir?", o:["Zaman","Mesafe","Parlaklık"]},
-    en:{q:"What is a light-year a unit of?", o:["Time","Distance","Brightness"]}, a:1 },
-  { tr:{q:"Güneş sisteminin en büyük gezegeni hangisidir?", o:["Jüpiter","Satürn","Neptün"]},
-    en:{q:"Which is the largest planet in our solar system?", o:["Jupiter","Saturn","Neptune"]}, a:0 },
-  { tr:{q:"Bir yıldızın patlayarak ölmesine ne denir?", o:["Tutulma","Süpernova","Meteor"]},
-    en:{q:"What do we call a star's explosive death?", o:["Eclipse","Supernova","Meteor"]}, a:1 },
-  { tr:{q:"Güneş sisteminin merkezinde ne var?", o:["Dünya","Ay","Güneş"]},
-    en:{q:"What is at the center of our solar system?", o:["Earth","Moon","The Sun"]}, a:2 },
-  { tr:{q:"Hangi gezegen yan yatık döner?", o:["Uranüs","Merkür","Mars"]},
-    en:{q:"Which planet spins on its side?", o:["Uranus","Mercury","Mars"]}, a:0 },
-  { tr:{q:"Samanyolu'nun komşu galaksisinin adı nedir?", o:["Andromeda","Orion","Plüton"]},
-    en:{q:"What is the name of our galaxy's neighbor?", o:["Andromeda","Orion","Pluto"]}, a:0 },
-  { tr:{q:"Astronomlar 'akan yıldız'a ne der?", o:["Kuyruklu yıldız","Meteor","Asteroit"]},
-    en:{q:"What do astronomers call a shooting star?", o:["Comet","Meteor","Asteroid"]}, a:1 }
+  { tr:{q:"Hangi tayf sınıfı en sıcaktır?", o:["O","G","M"]},
+    en:{q:"Which spectral class is the hottest?", o:["O","G","M"]}, a:0 },
+  { tr:{q:"Chandrasekhar limiti yaklaşık kaçtır?", o:["1.4 Güneş kütlesi","4 Güneş kütlesi","0.08 Güneş kütlesi"]},
+    en:{q:"What is the Chandrasekhar limit approximately?", o:["1.4 solar masses","4 solar masses","0.08 solar masses"]}, a:0 },
+  { tr:{q:"Yıldız ışığındaki düşüşlerle ötegezegen tespit eden yöntem hangisidir?", o:["Radyal hız","Geçiş (transit) yöntemi","Doğrudan görüntüleme"]},
+    en:{q:"Which method detects exoplanets via dips in starlight?", o:["Radial velocity","Transit method","Direct imaging"]}, a:1 },
+  { tr:{q:"Uzaklaşan bir galaksinin ışığındaki kırmızıya kaymaya ne sebep olur?", o:["Doppler etkisi","Soğurma","Yansıma"]},
+    en:{q:"What causes a redshift in a receding galaxy's light?", o:["Doppler effect","Absorption","Reflection"]}, a:0 },
+  { tr:{q:"Tip Ia süpernova hangi cisimden kaynaklanır?", o:["Beyaz cüce","Kırmızı dev","Nötron yıldızı"]},
+    en:{q:"A Type Ia supernova originates from which object?", o:["A white dwarf","A red giant","A neutron star"]}, a:0 },
+  { tr:{q:"HR diyagramı neyi gösterir?", o:["Parlaklık - sıcaklık","Kütle - yarıçap","Yaş - uzaklık"]},
+    en:{q:"What does the HR diagram plot?", o:["Luminosity vs temperature","Mass vs radius","Age vs distance"]}, a:0 },
+  { tr:{q:"Yıldız paralaksı neyi ölçmek için kullanılır?", o:["Yakın yıldızlara uzaklık","Yıldız sıcaklığı","Yıldız kütlesi"]},
+    en:{q:"Stellar parallax is used to measure what?", o:["Distance to nearby stars","Star temperature","Star mass"]}, a:0 },
+  { tr:{q:"Bir yıldızın kara delik olarak sonlanması için yaklaşık minimum kütlesi nedir?", o:["~20 Güneş kütlesi","~2 Güneş kütlesi","~0.5 Güneş kütlesi"]},
+    en:{q:"What is the approximate minimum progenitor mass for a black hole remnant?", o:["~20 solar masses","~2 solar masses","~0.5 solar masses"]}, a:0 },
+  { tr:{q:"Kozmik mikrodalga arka plan ışıması hangi olaydan kalmadır?", o:["Büyük Patlama","Bir süpernova","Ay'ın oluşumu"]},
+    en:{q:"The Cosmic Microwave Background is leftover radiation from which event?", o:["The Big Bang","A supernova","The formation of the Moon"]}, a:0 },
+  { tr:{q:"Kadir (magnitude) ölçeğinde daha düşük bir sayı neyi ifade eder?", o:["Daha parlak","Daha sönük","Daha uzak"]},
+    en:{q:"On the magnitude scale, a lower number means the object is...?", o:["Brighter","Dimmer","Farther away"]}, a:0 },
+  { tr:{q:"Gezegenlerin eşit zamanlarda eşit alanları süpürdüğünü söyleyen yasa hangisidir?", o:["Kepler'in 2. Yasası","Newton'un 3. Yasası","Hubble Yasası"]},
+    en:{q:"Which law states planets sweep equal areas in equal times?", o:["Kepler's Second Law","Newton's Third Law","Hubble's Law"]}, a:0 },
+  { tr:{q:"Sefeid değişken yıldızları ne amaçla kullanılır?", o:["Uzaklık için standart mumlar","Gezegen oluşumu göstergesi","Karanlık madde göstergesi"]},
+    en:{q:"Cepheid variable stars are used as what?", o:["Standard candles for distance","Markers of planet formation","Indicators of dark matter"]}, a:0 },
+  { tr:{q:"Kuiper Kuşağı hangi gezegenin yörüngesinin ötesinde yer alır?", o:["Neptün","Jüpiter","Mars"]},
+    en:{q:"The Kuiper Belt lies beyond the orbit of which planet?", o:["Neptune","Jupiter","Mars"]}, a:0 },
+  { tr:{q:"Daha kütleli anakol yıldızlarının ömrü nasıldır?", o:["Daha kısa","Daha uzun","Düşük kütleli yıldızlarla aynı"]},
+    en:{q:"More massive main-sequence stars have...?", o:["Shorter lifetimes","Longer lifetimes","The same lifetime as low-mass stars"]}, a:0 },
+  { tr:{q:"Hubble sabitinin günümüzdeki en iyi tahmini yaklaşık kaçtır?", o:["~70 km/s/Mpc","~700 km/s/Mpc","~7 km/s/Mpc"]},
+    en:{q:"What is the current best estimate of the Hubble constant, roughly?", o:["~70 km/s/Mpc","~700 km/s/Mpc","~7 km/s/Mpc"]}, a:0 }
 ];
 
 /* --------------------------------------------------------- constants -- */
@@ -340,6 +403,11 @@ const BASE_SPEED = 3.0, MAX_SPEED = 5.6;
 const BASE_SPACING = 270, MIN_SPACING = 220;
 const STAGE_THRESH = [0, 10, 25, 45, 70];
 const NEXT_TRIVIA_STEP = 7;
+const GRACE_FRAMES = 110;
+const STAR_NEEDED = 10;
+const POWER_MIN_S = 5, POWER_MAX_S = 20;
+const RUNNER_OBSTACLE_COUNT = 6;
+const RUNNER_SPAWN_GAP = 230;
 
 const STAGE_SKY = [
   [[176,224,240],[235,245,250]],
@@ -381,13 +449,20 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const hudScore = document.getElementById("hud-score");
 const hudStage = document.getElementById("hud-stage");
+const hudStars = document.getElementById("hud-stars");
+const energyWrap = document.getElementById("energy-wrap");
+const energyFill = document.getElementById("energy-fill");
 const toastEl = document.getElementById("toast");
 
 const ovStart = document.getElementById("overlay-start");
 const ovTrivia = document.getElementById("overlay-trivia");
+const ovCountdown = document.getElementById("overlay-countdown");
+const countdownNum = document.getElementById("countdown-num");
 const ovGameover = document.getElementById("overlay-gameover");
 const startSubtitle = document.getElementById("start-subtitle");
 const startHint = document.getElementById("start-hint");
+const startNameInput = document.getElementById("start-name-input");
+const startNameWarn = document.getElementById("start-name-warn");
 const btnStart = document.getElementById("btn-start");
 const btnLangTr = document.getElementById("btn-lang-tr");
 const btnLangEn = document.getElementById("btn-lang-en");
@@ -422,6 +497,7 @@ function applyLangUI(){
   startSubtitle.textContent = t.subtitle;
   btnStart.textContent = t.start;
   startHint.textContent = t.tapHint;
+  startNameInput.placeholder = t.startNamePlaceholder;
   btnRestart.textContent = t.restart;
   goTitle.textContent = t.rejected;
   btnLangTr.classList.toggle("active", LANG==="tr");
@@ -443,13 +519,20 @@ playerImg.src = ASSET_B64.player;
 const faceImgs = ASSET_B64.faces.map(src => { const im = new Image(); im.src = src; return im; });
 
 /* ------------------------------------------------------------- state - */
-const STATE = { START:"start", PLAY:"play", TRIVIA:"trivia", GAMEOVER:"gameover" };
+const STATE = { START:"start", PLAY:"play", TRIVIA:"trivia", COUNTDOWN:"countdown", GAMEOVER:"gameover" };
 let state = STATE.START;
+let mode = "flappy"; // "flappy" | "runner"
 
 let student, pipes, score, bestScore, lastStage, nextTrivia, bgOffset;
 let currentTrivia = null;
 let toastTimer = 0, toastText = "";
 let stars = [], nebula = [];
+
+let graceTimer = 0;
+let starsCollected = 0;
+let powerMode = false, powerTimer = 0, powerTimerMax = 1;
+let runnerObstacles = [], runnerCleared = 0, nextRunnerScore = 18;
+let currentPlayerName = "";
 
 try { bestScore = parseInt(localStorage.getItem("phdFlappyBest") || "0", 10) || 0; }
 catch(e){ bestScore = 0; }
@@ -457,6 +540,7 @@ catch(e){ bestScore = 0; }
 let savedName = "";
 try { savedName = localStorage.getItem("phdFlappyName") || ""; }
 catch(e){ savedName = ""; }
+startNameInput.value = savedName;
 
 function makeStars(n){
   const arr = [];
@@ -480,7 +564,8 @@ function makeNebula(n){
 function newPipe(x, gap, faceIdx){
   const margin = 95;
   const gapY = margin + gap/2 + Math.random()*(GAME_H-GROUND_H-2*margin-gap);
-  return { x, gap, gapY, passed:false, faceIdx };
+  const star = Math.random() < 0.3 ? { collected:false } : null;
+  return { x, gap, gapY, passed:false, faceIdx, star };
 }
 function makePipes(startX, gap, spacing){
   const arr = [];
@@ -490,15 +575,41 @@ function makePipes(startX, gap, spacing){
   return arr;
 }
 
+function newRunnerObstacle(x){
+  const types = ["reviewer","bush","rock"];
+  const type = types[Math.floor(Math.random()*types.length)];
+  const w = type==="reviewer" ? 40 : (type==="bush" ? 46 : 36);
+  const h = type==="reviewer" ? 48 : (type==="bush" ? 30 : 28);
+  const faceIdx = Math.floor(Math.random()*faceImgs.length);
+  return { x, w, h, type, faceIdx, passed:false };
+}
+function makeRunnerObstacles(startX){
+  const arr = [];
+  for(let i=0;i<4;i++) arr.push(newRunnerObstacle(startX + i*RUNNER_SPAWN_GAP));
+  return arr;
+}
+function runnerObstacleRect(o){
+  const groundY = GAME_H - GROUND_H;
+  return { x:o.x, y:groundY-o.h, w:o.w, h:o.h };
+}
+
 function resetGame(){
   const d = difficultyFor(0);
   student = { x: GAME_W*0.27, y: GAME_H/2, vel:0, w:76, h:50 };
+  mode = "flappy";
   pipes = makePipes(GAME_W + 120, d.gap, d.spacing);
+  runnerObstacles = [];
+  runnerCleared = 0;
+  nextRunnerScore = 18 + Math.floor(Math.random()*12);
   score = 0;
   lastStage = 0;
   nextTrivia = NEXT_TRIVIA_STEP;
   toastTimer = 0;
   bgOffset = 0;
+  graceTimer = 0;
+  starsCollected = 0;
+  powerMode = false; powerTimer = 0;
+  energyWrap.classList.add("hidden");
   state = STATE.PLAY;
 }
 
@@ -512,7 +623,140 @@ function flap(){
 
 function pipeTopRect(p){ return {x:p.x, y:0, w:PIPE_W, h:p.gapY-p.gap/2}; }
 function pipeBottomRect(p){ const by=p.gapY+p.gap/2; return {x:p.x, y:by, w:PIPE_W, h:GAME_H-GROUND_H-by}; }
-function rectsOverlap(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
+function headHitCircle(){
+  return { x: student.x + 10, y: student.y - 6, r: 13 };
+}
+function circleRectOverlap(c, r){
+  const cx = clamp(c.x, r.x, r.x+r.w);
+  const cy = clamp(c.y, r.y, r.y+r.h);
+  const dx = c.x-cx, dy = c.y-cy;
+  return (dx*dx + dy*dy) < c.r*c.r;
+}
+
+function onScorePoint(){
+  score += 1;
+  const ns = stageIndex(score);
+  if(ns !== lastStage){
+    lastStage = ns;
+    const msg = TEXT[LANG].stageToast[ns];
+    if(msg) showToast(msg);
+  }
+  if(mode==="flappy"){
+    if(score >= nextTrivia){
+      nextTrivia += NEXT_TRIVIA_STEP;
+      openTrivia();
+    } else if(!powerMode && score >= nextRunnerScore){
+      nextRunnerScore = score + 18 + Math.floor(Math.random()*14);
+      enterRunnerMode();
+    }
+  }
+}
+
+function enterRunnerMode(){
+  mode = "runner";
+  runnerCleared = 0;
+  runnerObstacles = makeRunnerObstacles(GAME_W + 100);
+  student.y = GAME_H - GROUND_H - student.h/2 - 2;
+  student.vel = 0;
+  graceTimer = GRACE_FRAMES;
+  showToast(TEXT[LANG].runnerOn);
+}
+function exitRunnerMode(){
+  mode = "flappy";
+  const d = difficultyFor(score);
+  pipes = makePipes(GAME_W + 120, d.gap, d.spacing);
+  student.y = GAME_H/2;
+  student.vel = 0;
+  graceTimer = GRACE_FRAMES;
+  showToast(TEXT[LANG].runnerOff);
+}
+
+function activatePower(){
+  powerMode = true;
+  powerTimerMax = (POWER_MIN_S + Math.random()*(POWER_MAX_S-POWER_MIN_S)) * 60;
+  powerTimer = powerTimerMax;
+  energyWrap.classList.remove("hidden");
+  energyFill.style.width = "100%";
+  showToast(TEXT[LANG].powerOn);
+}
+
+function randomAnonName(){
+  return TEXT[LANG].anonPrefix + Math.floor(1000 + Math.random()*9000);
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+async function addScoreRPC(name, amount){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/add_score`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ p_name: name, p_amount: amount })
+  });
+  if(!res.ok) throw new Error("rpc failed: " + res.status);
+  const data = await res.json();
+  return (data && typeof data.total_score === "number") ? data.total_score : amount;
+}
+
+async function fetchProfile(name){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?name=eq.${encodeURIComponent(name)}&select=total_score`, {
+    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
+  });
+  if(!res.ok) throw new Error("profile fetch failed: " + res.status);
+  const rows = await res.json();
+  return rows.length ? rows[0] : null;
+}
+
+async function fetchLeaderboard(){
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=name,total_score&order=total_score.desc&limit=10`, {
+    headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
+  });
+  if(!res.ok) throw new Error("fetch failed: " + res.status);
+  return res.json();
+}
+
+async function openLeaderboard(){
+  ovLeaderboard.classList.remove("hidden");
+  lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].lbLoading}</div>`;
+  try{
+    const rows = await fetchLeaderboard();
+    if(!rows.length){
+      lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].lbEmpty}</div>`;
+      return;
+    }
+    lbList.innerHTML = rows.map((r,i)=>
+      `<div class="lb-row"><span class="rank">#${i+1}</span><span class="name">${escapeHtml(r.name)}</span><span class="hidx">${r.total_score}</span></div>`
+    ).join("");
+  }catch(e){
+    lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].submitErr}</div>`;
+  }
+}
+
+async function doSubmit(name, isAuto){
+  if(isProfane(name)){
+    submitStatus.textContent = TEXT[LANG].profanityWarn;
+    return;
+  }
+  savedName = name;
+  try{ localStorage.setItem("phdFlappyName", name); }catch(e){}
+  btnSubmitScore.disabled = true;
+  btnSubmitScore.textContent = TEXT[LANG].submitSending;
+  submitStatus.textContent = isAuto ? TEXT[LANG].autoSubmitting : "";
+  try{
+    const newTotal = await addScoreRPC(name, score);
+    btnSubmitScore.textContent = TEXT[LANG].submitDone;
+    submitStatus.textContent = `${TEXT[LANG].newTotalPrefix} ${newTotal}`;
+  }catch(e){
+    submitStatus.textContent = TEXT[LANG].submitErr;
+    btnSubmitScore.disabled = false;
+    btnSubmitScore.textContent = TEXT[LANG].submitBtn;
+  }
+}
 
 function triggerGameOver(faceIdx, msgKey){
   state = STATE.GAMEOVER;
@@ -531,68 +775,40 @@ function triggerGameOver(faceIdx, msgKey){
   }
 
   scoreSubmitBlock.style.display = score > 0 ? "block" : "none";
-  nameInput.value = savedName;
+  nameInput.value = currentPlayerName || savedName;
   submitStatus.textContent = "";
   btnSubmitScore.disabled = false;
   btnSubmitScore.textContent = TEXT[LANG].submitBtn;
 
   ovGameover.classList.remove("hidden");
+
+  if(currentPlayerName && score>0){
+    doSubmit(currentPlayerName, true);
+  }
 }
 
-function randomAnonName(){
-  return TEXT[LANG].anonPrefix + Math.floor(1000 + Math.random()*9000);
-}
-
-function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-
-async function submitScore(name, scoreVal){
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
-    method: "POST",
-    headers: {
-      "apikey": SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-      "Content-Type": "application/json",
-      "Prefer": "return=minimal"
-    },
-    body: JSON.stringify({ name, score: scoreVal, lang: LANG })
-  });
-  if(!res.ok) throw new Error("submit failed: " + res.status);
-}
-
-async function fetchLeaderboard(){
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/scores?select=name,score&order=score.desc&limit=10`, {
-    headers: {
-      "apikey": SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
-    }
-  });
-  if(!res.ok) throw new Error("fetch failed: " + res.status);
-  return res.json();
-}
-
-async function openLeaderboard(){
-  ovLeaderboard.classList.remove("hidden");
-  lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].lbLoading}</div>`;
-  try{
-    const rows = await fetchLeaderboard();
-    if(!rows.length){
-      lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].lbEmpty}</div>`;
+function startCountdown(){
+  state = STATE.COUNTDOWN;
+  let n = 3;
+  countdownNum.textContent = n;
+  ovCountdown.classList.remove("hidden");
+  const tick = ()=>{
+    n -= 1;
+    if(n<=0){
+      ovCountdown.classList.add("hidden");
+      state = STATE.PLAY;
+      graceTimer = GRACE_FRAMES;
       return;
     }
-    lbList.innerHTML = rows.map((r,i)=>
-      `<div class="lb-row"><span class="rank">#${i+1}</span><span class="name">${escapeHtml(r.name)}</span><span class="hidx">${r.score}</span></div>`
-    ).join("");
-  }catch(e){
-    lbList.innerHTML = `<div class="lb-empty">${TEXT[LANG].submitErr}</div>`;
-  }
+    countdownNum.textContent = n;
+    setTimeout(tick, 700);
+  };
+  setTimeout(tick, 700);
 }
 
 function openTrivia(){
   state = STATE.TRIVIA;
   currentTrivia = TRIVIA[Math.floor(Math.random()*TRIVIA.length)];
-  const t = TEXT[LANG];
   const qd = currentTrivia[LANG];
   triviaQ.textContent = qd.q;
   triviaFeedback.textContent = "";
@@ -618,15 +834,32 @@ function answerTrivia(i){
   triviaFeedback.style.color = isCorrect ? "#8df0a0" : "#f0a0a0";
   setTimeout(()=>{
     ovTrivia.classList.add("hidden");
-    if(state===STATE.TRIVIA) state = STATE.PLAY;
+    if(state===STATE.TRIVIA) startCountdown();
   }, 1100);
 }
 optBtns.forEach((btn,i)=> btn.addEventListener("click", ()=> answerTrivia(i)));
 
-btnStart.addEventListener("click", ()=>{
+async function startGame(){
+  const raw = startNameInput.value.trim();
+  if(raw && isProfane(raw)){
+    startNameWarn.textContent = TEXT[LANG].profanityWarn;
+    return;
+  }
+  startNameWarn.textContent = "";
+  currentPlayerName = raw;
+  if(raw){
+    try{ localStorage.setItem("phdFlappyName", raw); }catch(e){}
+    savedName = raw;
+    fetchProfile(raw).then(p=>{
+      if(p) showToast(`${TEXT[LANG].welcomeBack} ${raw}! h-index: ${p.total_score}`);
+      else showToast(`${TEXT[LANG].newProfile} ${raw}`);
+    }).catch(()=>{});
+  }
   ovStart.classList.add("hidden");
   resetGame();
-});
+}
+
+btnStart.addEventListener("click", startGame);
 btnRestart.addEventListener("click", ()=>{
   ovGameover.classList.add("hidden");
   resetGame();
@@ -636,33 +869,21 @@ btnShowLb.addEventListener("click", openLeaderboard);
 btnShowLbGo.addEventListener("click", openLeaderboard);
 btnCloseLb.addEventListener("click", ()=> ovLeaderboard.classList.add("hidden"));
 
-btnSubmitScore.addEventListener("click", async ()=>{
+btnSubmitScore.addEventListener("click", ()=>{
   let name = nameInput.value.trim();
   if(!name) name = randomAnonName();
   if(name.length > 24) name = name.slice(0, 24);
-  savedName = name;
-  try{ localStorage.setItem("phdFlappyName", name); }catch(e){}
-
-  btnSubmitScore.disabled = true;
-  btnSubmitScore.textContent = TEXT[LANG].submitSending;
-  submitStatus.textContent = "";
-  try{
-    await submitScore(name, score);
-    btnSubmitScore.textContent = TEXT[LANG].submitDone;
-  }catch(e){
-    submitStatus.textContent = TEXT[LANG].submitErr;
-    btnSubmitScore.disabled = false;
-    btnSubmitScore.textContent = TEXT[LANG].submitBtn;
-  }
+  doSubmit(name, false);
 });
 
 canvas.addEventListener("pointerdown", (e)=>{ e.preventDefault(); flap(); });
 window.addEventListener("keydown", (e)=>{
   if(e.code==="Space" || e.code==="ArrowUp"){
-    e.preventDefault();
-    if(state===STATE.PLAY) flap();
-    else if(state===STATE.START){ ovStart.classList.add("hidden"); resetGame(); }
-    else if(state===STATE.GAMEOVER){ ovGameover.classList.add("hidden"); resetGame(); }
+    if(state===STATE.START){ e.preventDefault(); startGame(); return; }
+    if(state===STATE.PLAY){ e.preventDefault(); flap(); return; }
+    if(state===STATE.GAMEOVER){ e.preventDefault(); ovGameover.classList.add("hidden"); resetGame(); return; }
+  } else if(e.code==="Escape" && state===STATE.START){
+    ovLeaderboard.classList.add("hidden");
   } else if(state===STATE.TRIVIA && ["Digit1","Digit2","Digit3"].includes(e.code)){
     answerTrivia(parseInt(e.code.slice(-1),10)-1);
   }
@@ -772,7 +993,6 @@ function drawPipe(p){
     ctx.fillStyle = g;
     ctx.fillRect(r.x, r.y, r.w, r.h);
 
-    // hazard stripe near the gap-facing cap
     const stripeH = 14;
     const stripeY = seg===0 ? r.y+r.h-stripeH : r.y;
     ctx.save();
@@ -789,13 +1009,11 @@ function drawPipe(p){
     }
     ctx.restore();
 
-    // glowing cap edge
     ctx.fillStyle = glow;
     const capY = seg===0 ? r.y+r.h-3 : r.y;
     ctx.fillRect(r.x-3, capY, r.w+6, 3);
   });
 
-  // single reviewer badge, mounted at the bottom of the TOP pipe only
   const top = pipeTopRect(p);
   if(top.h>10){
     const cx = p.x + PIPE_W/2, cy = top.y+top.h;
@@ -811,13 +1029,89 @@ function drawPipe(p){
     ctx.strokeStyle = "#191928"; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.arc(cx,cy,30,0,Math.PI*2); ctx.stroke();
   }
+
+  if(p.star && !p.star.collected){
+    drawStar(p.x + PIPE_W/2, p.gapY);
+  }
+}
+
+function drawStar(x,y){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(performance.now()/900);
+  ctx.fillStyle = "#ffe066";
+  ctx.strokeStyle = "#a8790a";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for(let i=0;i<5;i++){
+    const a1 = (i*2*Math.PI)/5 - Math.PI/2;
+    const a2 = a1 + Math.PI/5;
+    const x1 = Math.cos(a1)*11, y1 = Math.sin(a1)*11;
+    const x2 = Math.cos(a2)*4.5, y2 = Math.sin(a2)*4.5;
+    if(i===0) ctx.moveTo(x1,y1); else ctx.lineTo(x1,y1);
+    ctx.lineTo(x2,y2);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawRunnerObstacle(o){
+  const r = runnerObstacleRect(o);
+  if(o.type==="bush"){
+    ctx.fillStyle = "#2e7d4f";
+    ctx.beginPath();
+    ctx.ellipse(r.x+r.w*0.3, r.y+r.h*0.6, r.w*0.32, r.h*0.5, 0,0,Math.PI*2);
+    ctx.ellipse(r.x+r.w*0.65, r.y+r.h*0.5, r.w*0.32, r.h*0.55, 0,0,Math.PI*2);
+    ctx.fill();
+  } else if(o.type==="rock"){
+    ctx.fillStyle = "#6b6b76";
+    ctx.beginPath();
+    ctx.moveTo(r.x, r.y+r.h);
+    ctx.lineTo(r.x+r.w*0.15, r.y+r.h*0.2);
+    ctx.lineTo(r.x+r.w*0.6, r.y);
+    ctx.lineTo(r.x+r.w, r.y+r.h*0.35);
+    ctx.lineTo(r.x+r.w, r.y+r.h);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.fillStyle = "#39405e";
+    ctx.fillRect(r.x, r.y+r.h*0.45, r.w, r.h*0.55);
+    const cx = r.x+r.w/2, cy = r.y+r.h*0.28;
+    const rad = r.w*0.42;
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.fill();
+    const img = faceImgs[o.faceIdx];
+    if(img && img.complete && img.naturalWidth>0){
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx,cy,rad*0.88,0,Math.PI*2); ctx.clip();
+      ctx.drawImage(img, cx-rad, cy-rad, rad*2, rad*2);
+      ctx.restore();
+    }
+    ctx.strokeStyle = "#191928"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.stroke();
+  }
 }
 
 function drawStudent(){
   const angle = clamp(-student.vel*3.2, -25, 35);
   ctx.save();
   ctx.translate(student.x, student.y);
+
+  if(powerMode){
+    const pulse = 0.55 + 0.4*Math.sin(performance.now()/110);
+    const grad = ctx.createRadialGradient(0,0,4,0,0,42);
+    grad.addColorStop(0, `rgba(255,90,40,${0.6*pulse})`);
+    grad.addColorStop(1, "rgba(255,90,40,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(0,0,42,0,Math.PI*2); ctx.fill();
+  }
+
   ctx.rotate(-angle*Math.PI/180);
+  if(graceTimer>0 && Math.floor(performance.now()/100)%2===0){
+    ctx.globalAlpha = 0.45;
+  }
   if(playerImg.complete && playerImg.naturalWidth>0){
     ctx.drawImage(playerImg, -student.w/2, -student.h/2, student.w, student.h);
   } else {
@@ -826,22 +1120,32 @@ function drawStudent(){
   ctx.restore();
 }
 
-function hitRect(){
-  const iw = student.w*0.28, ih = student.h*0.28;
-  return { x: student.x-student.w/2+iw/2, y: student.y-student.h/2+ih/2,
-           w: student.w-iw, h: student.h-ih };
-}
-
 /* ------------------------------------------------------------ update -- */
 let lastTime = 0;
 function update(dtScale){
   const d = difficultyFor(score);
 
-  if(state===STATE.PLAY){
-    bgOffset += d.speed*dtScale;
-    student.vel = Math.min(student.vel + GRAVITY*dtScale, 11);
-    student.y += student.vel*dtScale;
+  if(state!==STATE.PLAY) return;
 
+  bgOffset += d.speed*dtScale;
+  student.vel = Math.min(student.vel + GRAVITY*dtScale, 11);
+  student.y += student.vel*dtScale;
+
+  if(graceTimer>0) graceTimer -= dtScale;
+  if(powerMode){
+    powerTimer -= dtScale;
+    energyFill.style.width = `${clamp(powerTimer/powerTimerMax,0,1)*100}%`;
+    if(powerTimer<=0){
+      powerMode = false;
+      energyWrap.classList.add("hidden");
+      graceTimer = GRACE_FRAMES;
+      showToast(TEXT[LANG].powerOff);
+    }
+  }
+
+  const hc = headHitCircle();
+
+  if(mode==="flappy"){
     for(const p of pipes) p.x -= d.speed*dtScale;
     if(pipes[0].x < -PIPE_W){
       pipes.shift();
@@ -849,49 +1153,81 @@ function update(dtScale){
       pipes.push(newPipe(last.x + d.spacing, d.gap, Math.floor(Math.random()*faceImgs.length)));
     }
 
-    const hr = hitRect();
     for(const p of pipes){
       if(!p.passed && p.x+PIPE_W < student.x){
         p.passed = true;
-        score += 1;
-        const ns = stageIndex(score);
-        if(ns !== lastStage){
-          lastStage = ns;
-          const msg = TEXT[LANG].stageToast[ns];
-          if(msg) showToast(msg);
-        }
-        if(score >= nextTrivia){
-          nextTrivia += NEXT_TRIVIA_STEP;
-          openTrivia();
+        onScorePoint();
+      }
+      if(p.star && !p.star.collected){
+        const sx = p.x+PIPE_W/2, sy = p.gapY;
+        const dx = sx-student.x, dy = sy-student.y;
+        if(dx*dx+dy*dy < 30*30){
+          p.star.collected = true;
+          starsCollected++;
+          if(starsCollected>=STAR_NEEDED){ starsCollected=0; activatePower(); }
         }
       }
-      if(rectsOverlap(hr, pipeTopRect(p)) || rectsOverlap(hr, pipeBottomRect(p))){
+      if(graceTimer<=0 && !powerMode &&
+         (circleRectOverlap(hc, pipeTopRect(p)) || circleRectOverlap(hc, pipeBottomRect(p)))){
         triggerGameOver(p.faceIdx, "reject");
+        return;
       }
-    }
-    if(student.y - student.h/2 < 0){ student.y = student.h/2; student.vel = 0; }
-    if(student.y + student.h/2 > GAME_H-GROUND_H){
-      triggerGameOver(null, "gravity");
     }
 
-    if(toastTimer>0){
-      toastTimer -= dtScale;
-      toastEl.textContent = toastText;
-      toastEl.classList.add("show");
-      if(toastTimer<=0) toastEl.classList.remove("show");
+    if(student.y - student.h/2 < 0){ student.y = student.h/2; student.vel = 0; }
+    if(student.y + student.h/2 > GAME_H-GROUND_H){
+      if(graceTimer>0 || powerMode){ student.y = GAME_H-GROUND_H-student.h/2; student.vel = 0; }
+      else { triggerGameOver(null, "gravity"); return; }
     }
+  } else {
+    const groundY = GAME_H-GROUND_H;
+    if(student.y + student.h/2 > groundY){ student.y = groundY - student.h/2; student.vel = 0; }
+
+    for(const o of runnerObstacles) o.x -= d.speed*dtScale;
+    if(runnerObstacles[0].x < -60){
+      runnerObstacles.shift();
+      const last = runnerObstacles[runnerObstacles.length-1];
+      runnerObstacles.push(newRunnerObstacle(last.x + RUNNER_SPAWN_GAP));
+    }
+
+    for(const o of runnerObstacles){
+      if(!o.passed && o.x+o.w < student.x){
+        o.passed = true;
+        runnerCleared++;
+        onScorePoint();
+        if(runnerCleared>=RUNNER_OBSTACLE_COUNT){ exitRunnerMode(); break; }
+      }
+      if(graceTimer<=0 && !powerMode && circleRectOverlap(hc, runnerObstacleRect(o))){
+        triggerGameOver(o.type==="reviewer" ? o.faceIdx : null, "reject");
+        return;
+      }
+    }
+  }
+
+  if(toastTimer>0){
+    toastTimer -= dtScale;
+    toastEl.textContent = toastText;
+    toastEl.classList.add("show");
+    if(toastTimer<=0) toastEl.classList.remove("show");
   }
 }
 
 function render(){
   drawBackground();
-  for(const p of pipes) drawPipe(p);
+  if(mode==="flappy"){
+    for(const p of pipes) drawPipe(p);
+  } else {
+    for(const o of runnerObstacles) drawRunnerObstacle(o);
+  }
   drawStudent();
   hudScore.textContent = `${TEXT[LANG].citations}: ${score}`;
   hudStage.textContent = TEXT[LANG].stageNames[stageIndex(score)];
+  hudStars.textContent = mode==="flappy" ? `${TEXT[LANG].starsLabel} ${starsCollected}/${STAR_NEEDED}` : "";
   const idx = stageIndex(score);
-  hudScore.style.color = idx>=2 ? "#fff" : "#1a1a2a";
-  hudStage.style.color = idx>=2 ? "#e8e8f5" : "#1a1a2a";
+  const lightText = idx>=2 || mode==="runner";
+  hudScore.style.color = lightText ? "#fff" : "#1a1a2a";
+  hudStage.style.color = lightText ? "#e8e8f5" : "#1a1a2a";
+  hudStars.style.color = lightText ? "#ffe066" : "#6b5300";
 }
 
 function loop(ts){
@@ -922,6 +1258,28 @@ score = 0; lastStage = 0;
 
 resizeCanvas();
 requestAnimationFrame(loop);
+
+if(location.search.includes("debug")){
+  window.__dbg = {
+    get: ()=>({ state, mode, score, starsCollected, powerMode, powerTimer, graceTimer,
+                 currentPlayerName, studentY: student.y, studentX: student.x,
+                 pipeCount: pipes.length, runnerCount: runnerObstacles.length }),
+    setScore: (v)=>{ score = v; },
+    setStars: (v)=>{ starsCollected = v; },
+    activatePower,
+    enterRunnerMode,
+    exitRunnerMode,
+    startGame,
+    resetGame,
+    flap,
+    headHitCircle,
+    pipeTopRect,
+    pipeBottomRect,
+    isProfane,
+    pipes: ()=>pipes,
+    runnerObstacles: ()=>runnerObstacles
+  };
+}
 
 })();
 </script>
