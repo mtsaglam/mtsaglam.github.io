@@ -1,0 +1,41 @@
+---
+layout: archive
+title: "X-ray Archive Finder"
+permalink: /tools/xray-archive-finder/
+author_profile: true
+---
+
+<p>Enter a source name or coordinates to see which X-ray missions have observed it and how many times, from the
+<a href="https://heasarc.gsfc.nasa.gov/" target="_blank" rel="noopener">NASA HEASARC</a> archive. Names are resolved with
+<a href="https://simbad.cds.unistra.fr/simbad/" target="_blank" rel="noopener">SIMBAD</a>, so any of the object's identifiers work.
+Click a mission to list its observations, or download everything as CSV.
+<a id="xf-full" href="/xray-archive-finder/" target="_blank" rel="noopener">Open full screen</a>.</p>
+
+<p style="font-size:0.85em;color:#7a8288;">The observation index is rebuilt every night from the HEASARC master tables, so observations added today appear tomorrow. Source code: <a href="https://github.com/mtsaglam/xray-archive-finder" target="_blank" rel="noopener">github.com/mtsaglam/xray-archive-finder</a>.</p>
+
+<iframe id="xray-finder" title="X-ray Archive Finder" src="/xray-archive-finder/"
+        style="width:100%;height:900px;border:0;display:block;" loading="eager"></iframe>
+
+<script>
+(function () {
+  var frame = document.getElementById("xray-finder");
+  var full = document.getElementById("xf-full");
+  var params = new URLSearchParams(location.search);
+  var pass = new URLSearchParams();
+  ["q", "r", "lang"].forEach(function (k) { if (params.get(k)) pass.set(k, params.get(k)); });
+  var qs = pass.toString();
+  if (qs) { frame.src = "/xray-archive-finder/?" + qs; full.href = frame.src; }
+  window.addEventListener("message", function (ev) {
+    if (ev.source !== frame.contentWindow || !ev.data) return;
+    if (ev.data.type === "xray-finder-height") {
+      frame.style.height = Math.max(400, Math.ceil(ev.data.height) + 4) + "px";
+    } else if (ev.data.type === "xray-finder-query") {
+      var p = new URLSearchParams();
+      p.set("q", ev.data.q);
+      if (ev.data.r) p.set("r", ev.data.r);
+      history.replaceState(null, "", "?" + p.toString());
+      full.href = "/xray-archive-finder/?" + p.toString();
+    }
+  });
+})();
+</script>
